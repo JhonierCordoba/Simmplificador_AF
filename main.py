@@ -9,11 +9,17 @@ class Application(ttk.Frame):
         super().__init__(main_window)
         main_window.geometry("800x600")
 
+        self.automata_ingresado = {}
+        self.automata_deterministico_ingresado = {}
+
         self.entradal = tk.Label(self, text="Ingrese los valores de entrada separados por espacios:")
         self.entradal.grid(column=0, row=0, pady=10, padx=10, sticky="e")
 
         self.estadosl = tk.Label(self, text="Ingrese los valores de estado separados por espacios:")
         self.estadosl.grid(column=0, row=1, pady=10, padx=10, sticky="e")
+
+        self.estadosl = tk.Label(self, text="Ingrese los valores de aceptación o rechazo(0 ó 1) separados por espacios:")
+        self.estadosl.grid(column=0, row=2, pady=10, padx=10, sticky="e")
 
         self.entrada = tk.Entry(self)
         self.grid_columnconfigure(1, weight=1)
@@ -22,13 +28,17 @@ class Application(ttk.Frame):
         self.estados = tk.Entry(self)
         self.estados.grid(column=1, row=1, pady=20, padx=10, sticky="ew")
 
-        self.boton = tk.Button(self, text="Ingresar automata",
-                               command=lambda: self.read_automata(self.entrada.get(), self.estados.get()))
-        self.boton.place(x=100, y=150)
+        self.salidas = tk.Entry(self)
+        self.salidas.grid(column=1, row=2, pady=20, padx=10, sticky="ew")
 
-    def read_automata(self, entrys, states):
+        self.boton = tk.Button(self, text="Ingresar automata",
+                               command=lambda: self.read_automata(self.entrada.get(), self.estados.get(), self.salidas.get()))
+        self.boton.place(x=150, y=170)
+
+    def read_automata(self, entrys, states, exits):
         entradas = entrys.split()
         estados = states.split()
+        salidas = exits.split()
         transiciones = []
         deterministico = True
         if len(entradas) == 0 or len(estados) == 0:
@@ -53,19 +63,36 @@ class Application(ttk.Frame):
         automata_finito = {}
         for estado, transicion in zip(estados, transiciones):
             automata_finito[estado] = transicion
+        automata_finito["*"] = {est: "*" for est in entradas}
         print(automata_finito)
+        self.automata_ingresado = automata_finito
         if not deterministico:
-            automata_finito["*"] = {"*": "*"}
             primer_estado = list(automata_finito.keys())[0]
             automata_deterministico = {}
             self.recorrer_automata(automata_finito, automata_deterministico, primer_estado)
+            if "*" in automata_deterministico.keys():
+                automata_deterministico.pop("*")
+            salidas_no_deterministicas = [0 for x in automata_deterministico]
+            for estado in list(automata_deterministico.keys()):
+                i = list(automata_deterministico.keys()).index(estado)
+                for estado_no_deterministico in automata_finito:
+                    y = list(automata_finito.keys()).index(estado_no_deterministico)
+                    if estado_no_deterministico in estado and salidas_no_deterministicas[i] == 0 and salidas[y] == "1":
+                        salidas_no_deterministicas[i] = 1
+            salidas = salidas_no_deterministicas
+            self.automata_deterministico_ingresado = automata_deterministico
             print(automata_deterministico)
+            print(salidas)
+        for fila in automata_finito:
+            automata_finito[fila]["*"] = salidas.pop(0)
+        """self.automata = tk.Label(self, text=str(self.automata_ingresado))
+        self.deterministico = tk.Label(self, text=str(self.automata_deterministico_ingresado))
+        self.deterministico.place(x=10, y=200)
+        self.automata.place(x=10, y=220)"""
+        self.automata = tk.Label(self, text="Ingrese su secuencia")
+        self.boton = tk.Button(self, text="Ingresar automata", command=lambda: self.read_automata(self.entrada.get(), self.estados.get(), self.salidas.get()))
+        self.boton.place(x=150, y=270)
 
-    def transformacion_deterministico(self, automata_no_deterministico):
-        #Método muerto
-        primer_estado = list(automata_no_deterministico.keys())[0]
-        automata_deterministico = {}
-        self.recorrer_automata(automata_no_deterministico, automata_deterministico, primer_estado)
 
     def recorrer_automata(self, automata_no_deterministico, automata_deterministico, estado):
         if estado in automata_deterministico:
