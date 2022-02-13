@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk
+from itertools import product
 
 
 
@@ -66,25 +67,26 @@ class Application(ttk.Frame):
         automata_finito["*"] = {est: "*" for est in entradas}
         print(automata_finito)
         self.automata_ingresado = automata_finito
-        if not deterministico:
-            primer_estado = list(automata_finito.keys())[0]
-            automata_deterministico = {}
-            self.recorrer_automata(automata_finito, automata_deterministico, primer_estado)
-            if "*" in automata_deterministico.keys():
-                automata_deterministico.pop("*")
-            salidas_no_deterministicas = [0 for x in automata_deterministico]
-            for estado in list(automata_deterministico.keys()):
-                i = list(automata_deterministico.keys()).index(estado)
-                for estado_no_deterministico in automata_finito:
-                    y = list(automata_finito.keys()).index(estado_no_deterministico)
-                    if estado_no_deterministico in estado and salidas_no_deterministicas[i] == 0 and salidas[y] == "1":
-                        salidas_no_deterministicas[i] = 1
-            salidas = salidas_no_deterministicas
-            self.automata_deterministico_ingresado = automata_deterministico
-            print(automata_deterministico)
-            print(salidas)
-        for fila in automata_finito:
-            automata_finito[fila]["*"] = salidas.pop(0)
+        #si no es determinstico
+        primer_estado = list(automata_finito.keys())[0]
+        automata_deterministico = {}
+        self.recorrer_automata(automata_finito, automata_deterministico, primer_estado)
+        if "*" in automata_deterministico.keys():
+            automata_deterministico.pop("*")
+        salidas_no_deterministicas = [0 for x in automata_deterministico]
+        for estado in list(automata_deterministico.keys()):
+            i = list(automata_deterministico.keys()).index(estado)
+            for estado_no_deterministico in automata_finito:
+                y = list(automata_finito.keys()).index(estado_no_deterministico)
+                if estado_no_deterministico in estado and salidas_no_deterministicas[i] == 0 and salidas[y] == "1":
+                    salidas_no_deterministicas[i] = 1
+        salidas = salidas_no_deterministicas
+        self.automata_ingresado = automata_deterministico
+        print(salidas)
+
+        for fila in self.automata_ingresado:
+            self.automata_ingresado[fila]["*"] = salidas.pop(0)
+        print(self.automata_ingresado)
         """self.automata = tk.Label(self, text=str(self.automata_ingresado))
         self.deterministico = tk.Label(self, text=str(self.automata_deterministico_ingresado))
         self.deterministico.place(x=10, y=200)
@@ -92,6 +94,9 @@ class Application(ttk.Frame):
         self.automata = tk.Label(self, text="Ingrese su secuencia")
         self.boton = tk.Button(self, text="Ingresar automata", command=lambda: self.read_automata(self.entrada.get(), self.estados.get(), self.salidas.get()))
         self.boton.place(x=150, y=270)
+        #simplificar
+        self.simplificacion_estados_equivalentes()
+
 
 
     def recorrer_automata(self, automata_no_deterministico, automata_deterministico, estado):
@@ -187,10 +192,40 @@ class Application(ttk.Frame):
             elif transiciones1[entrada].__contains__(transiciones2[entrada]):
                 automata_deterministico[estado][entrada] = transiciones1[entrada]
             else:
+                unique = ""
+                for char in nuevo_estado:
+                    if char not in unique:
+                        unique += char
+                nuevo_estado = unique
                 automata_deterministico[estado][entrada] = nuevo_estado
             #Recursividad
             if nuevo_estado not in list(automata_deterministico.keys()):
                 self.recorrer_indeterminacion(automata_no_deterministico, automata_deterministico, nuevo_estado, transiciones1[entrada], transiciones2[entrada])
+
+    def simplificacion_estados_equivalentes(self):
+        aceptacion = []
+        rechazo = []
+        subgrupos = {}
+
+        for i in self.automata_ingresado:
+            if self.automata_ingresado[i]["*"] == 1:
+                aceptacion.append(i)
+            else:
+                rechazo.append(i)
+
+        r = [0, 1]
+        print(aceptacion)
+        grupos = product(r, repeat=len(self.automata_ingresado[list(self.automata_ingresado.keys())[0]]) - 1)
+        print(list(grupos))
+
+
+
+
+
+
+
+
+
 
     def sintax(self, text):
         top = Toplevel(self)
