@@ -12,6 +12,7 @@ class Application(ttk.Frame):
 
         self.automata_ingresado = {}
         self.automata_deterministico_ingresado = {}
+        self.automata_simplificado = {}
 
         self.entradal = tk.Label(self, text="Ingrese los valores de entrada separados por espacios:")
         self.entradal.grid(column=0, row=0, pady=10, padx=10, sticky="e")
@@ -95,7 +96,8 @@ class Application(ttk.Frame):
         self.boton = tk.Button(self, text="Ingresar automata", command=lambda: self.read_automata(self.entrada.get(), self.estados.get(), self.salidas.get()))
         self.boton.place(x=150, y=270)
         #simplificar
-        self.simplificacion_estados_equivalentes()
+        self.automata_simplificado = self.simplificacion_estados_equivalentes()
+
 
 
 
@@ -205,7 +207,10 @@ class Application(ttk.Frame):
     def simplificacion_estados_equivalentes(self):
         aceptacion = []
         rechazo = []
-        subgrupos = {}
+        aceptacion_grupos = {}
+        rechazo_grupos = {}
+        nombre_primer_estado = list(self.automata_ingresado.keys())[0]
+        estado_inicial = self.automata_ingresado[list(self.automata_ingresado.keys())[0]]
 
         for i in self.automata_ingresado:
             if self.automata_ingresado[i]["*"] == 1:
@@ -214,18 +219,57 @@ class Application(ttk.Frame):
                 rechazo.append(i)
 
         r = [0, 1]
-        print(aceptacion)
-        grupos = product(r, repeat=len(self.automata_ingresado[list(self.automata_ingresado.keys())[0]]) - 1)
-        print(list(grupos))
+        grupos = list(product(r, repeat=len(estado_inicial) - 1))
+        print(grupos)
+        print("-"*60)
+        for i in list(grupos):
+            aceptacion_grupos[i] = []
+            rechazo_grupos[i] = []
 
 
+        for estado in self.automata_ingresado:
+            salidas = ()
+            for transicion in list(self.automata_ingresado[estado].values()):
+                salidas += (self.automata_ingresado[transicion]["*"],) if type(transicion) != int else ()
+            if estado in aceptacion:
+                aceptacion_grupos[salidas].append(estado)
+            else:
+                rechazo_grupos[salidas].append(estado)
 
+        grupos = []
+        for i in aceptacion_grupos:
+            if len(aceptacion_grupos[i]) > 0:
+                grupos.append(aceptacion_grupos[i])
+        for i in rechazo_grupos:
+            if len(rechazo_grupos[i]) > 0:
+                grupos.append(rechazo_grupos[i])
 
+        print(grupos)
+        print("-"*100)
+        return self.crear_simplificacion(nombre_primer_estado, grupos, {})
 
+    def crear_simplificacion(self, estado, grupos, automata_simplificado):
+        union = ""
+        for estados in grupos:
+            if estado in estados:
+                union = "".join(estados)
+                break
+        if union in automata_simplificado:
+            return
+        automata_simplificado[union] = {}
+        estado_actual = self.automata_ingresado[estado]
+        for entrada in list(estado_actual.keys()):
+            if entrada != "*":
+                automata_simplificado[union][entrada] = self.union(self.automata_ingresado[estado][entrada], grupos)
+                self.crear_simplificacion(estado_actual[entrada], grupos, automata_simplificado)
+        print(automata_simplificado)
+        return automata_simplificado
 
-
-
-
+    def union(self, estado, grupos):
+        for estados in grupos:
+            if estado in estados:
+                union = "".join(estados)
+                return union
 
     def sintax(self, text):
         top = Toplevel(self)
