@@ -10,11 +10,14 @@ class Application(ttk.Frame):
         super().__init__(main_window)
         main_window.geometry("800x600")
 
+        # variablespara toda la app
         self.automata_ingresado = {}
         self.automata_deterministico_ingresado = {}
         self.automata_simplificado = {}
         self.secuencia = ""
 
+
+        # creación de  botones y labels de la interfaz
         self.entradal = tk.Label(self, text="Ingrese los valores de entrada separados por espacios:")
         self.entradal.grid(column=0, row=0, pady=10, padx=10, sticky="e")
 
@@ -38,12 +41,16 @@ class Application(ttk.Frame):
                                command=lambda: self.read_automata(self.entrada.get(), self.estados.get(), self.salidas.get()))
         self.boton.place(x=150, y=170)
 
+    #traduce el automata a terminos leibles por el código
     def read_automata(self, entrys, states, exits):
+        # se toman las entradas
         entradas = entrys.split()
         estados = states.split()
         salidas = exits.split()
         transiciones = []
         deterministico = True
+
+        # control de sintaxis y lectura del
         if len(entradas) == 0 or len(estados) == 0:
             self.sintax("Tu automata carece de estados o valores de entrada, reformalo")
         for estado in estados:
@@ -64,16 +71,19 @@ class Application(ttk.Frame):
                 t[entrada] = trans
             transiciones.append(t)
         automata_finito = {}
+
+        # remover estado nulo edl automata
         for estado, transicion in zip(estados, transiciones):
             automata_finito[estado] = transicion
         automata_finito["*"] = {est: "*" for est in entradas}
         print(automata_finito)
+
         #Mostrar el automata inicial
         self.automata_ingresado = automata_finito
         self.automataLabel = tk.Label(self, text="El automata que ingresó es:" + str(self.automata_ingresado))
         self.automataLabel.place(x=10, y=200)
 
-        # Convertir automata a deterministico si es necesario, remover estados extraños
+        # Convertir automata a deterministico si es necesario, remover estados extraños y agregar salidas
         primer_estado = list(automata_finito.keys())[0]
         automata_deterministico = {}
         self.recorrer_automata(automata_finito, automata_deterministico, primer_estado)
@@ -100,18 +110,15 @@ class Application(ttk.Frame):
             self.deterministico = tk.Label(self, text="convertido a deterministico: " + str(self.automata_ingresado))
             self.deterministico.place(x=10, y=220)
 
-        #simplificar
+        # simplificar automata
         self.automata_simplificado = self.simplificacion_estados_equivalentes()
 
-
-        # WIP leer secuencia
-
-
+        # leer secuencia ingresada
         self.ingresarSecuencia = tk.Button(self, text="Simplificar automata",
                                command=lambda: self.mostrar_simplificado())
         self.ingresarSecuencia.place(x=150, y=260)
 
-
+    # literalmente recorre al automata partiendo del estado inicial, con lo cual no se tienen en cuenta los estados extraños
     def recorrer_automata(self, automata_no_deterministico, automata_deterministico, estado):
         if estado in automata_deterministico:
             return
@@ -119,6 +126,7 @@ class Application(ttk.Frame):
         automata_deterministico[estado] = {}
         # Recorrer transiciones
         for entrada in list(transiciones.keys()):
+            # en caso de tener una indeterminacion en un estado se va haci otra función para recorrerlo
             if (type(transiciones[entrada]) == list):
                 estado1 = transiciones[entrada][0]
                 estado2 = transiciones[entrada][1]
@@ -136,6 +144,7 @@ class Application(ttk.Frame):
                 self.recorrer_automata(automata_no_deterministico, automata_deterministico, transiciones[entrada])
                 automata_deterministico[estado][entrada] = automata_no_deterministico[estado][entrada]
 
+    # en caso de que el automata sea no deterministico
     def recorrer_indeterminacion(self, automata_no_deterministico, automata_deterministico, estado, estado1, estado2):
         #Control de igualdad o contencion de otro estado
         if(estado1 == estado2):
@@ -215,6 +224,7 @@ class Application(ttk.Frame):
             if nuevo_estado not in list(automata_deterministico.keys()):
                 self.recorrer_indeterminacion(automata_no_deterministico, automata_deterministico, nuevo_estado, transiciones1[entrada], transiciones2[entrada])
 
+    # simplifica el automata, uniendo los estados equivalentes
     def simplificacion_estados_equivalentes(self):
         aceptacion = []
         rechazo = []
@@ -222,7 +232,7 @@ class Application(ttk.Frame):
         rechazo_grupos = {}
         nombre_primer_estado = list(self.automata_ingresado.keys())[0]
         estado_inicial = self.automata_ingresado[list(self.automata_ingresado.keys())[0]]
-
+        # separa los estados de aceptacion y rechazo
         for i in self.automata_ingresado:
             if self.automata_ingresado[i]["*"] == 1:
                 aceptacion.append(i)
@@ -231,13 +241,11 @@ class Application(ttk.Frame):
 
         r = [0, 1]
         grupos = list(product(r, repeat=len(estado_inicial) - 1))
-        print(grupos)
-        print("-"*100)
         for i in list(grupos):
             aceptacion_grupos[i] = []
             rechazo_grupos[i] = []
 
-
+        # separa a cada grupo de estados dependiendo de sus salidas
         for estado in self.automata_ingresado:
             salidas = ()
             for transicion in list(self.automata_ingresado[estado].values()):
@@ -264,8 +272,7 @@ class Application(ttk.Frame):
             if len(rechazo_grupos[i]) > 0:
                 grupos.append(rechazo_grupos[i])
 
-        print(grupos)
-        print("-"*100)
+        # crear el nuevo automata simplificado
         automata_simplificado = self.crear_simplificacion(nombre_primer_estado, grupos, {})
         for estado in automata_simplificado:
             print(estado)
@@ -326,8 +333,8 @@ class Application(ttk.Frame):
         self.simplificado = tk.Label(self, text="estado actual: " + str(estado))
         self.simplificado.place(x=50, y=380, width = 700)
         self.ingreseSecuencia = tk.Label(self, text="siguiente entrada: " + self.secuencia[posicion])
-        self.ingreseSecuencia.place(x=10, y=400, width= 700)
-        self.ingresarSecuencia = tk.Button(self, text="Ingresar secuencia",
+        self.ingreseSecuencia.place(x=10, y=400, width= 750)
+        self.ingresarSecuencia = tk.Button(self, text="Leer siguiente valor de entrada",
                                            command=lambda: self.leer_secuencia(self.automata_simplificado[estado][self.secuencia[posicion]], posicion+1))
         self.ingresarSecuencia.place(x=150, y=440)
 
