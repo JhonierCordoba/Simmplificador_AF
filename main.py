@@ -50,7 +50,7 @@ class Application(ttk.Frame):
         transiciones = []
         deterministico = True
 
-        # control de sintaxis y lectura del
+        # control de sintaxis y lectura del automata
         if len(entradas) == 0 or len(estados) == 0:
             self.sintax("Tu automata carece de estados o valores de entrada, reformalo")
         for estado in estados:
@@ -72,7 +72,7 @@ class Application(ttk.Frame):
             transiciones.append(t)
         automata_finito = {}
 
-        # remover estado nulo edl automata
+        # remover estado nulo del automata
         for estado, transicion in zip(estados, transiciones):
             automata_finito[estado] = transicion
         automata_finito["*"] = {est: "*" for est in entradas}
@@ -118,7 +118,7 @@ class Application(ttk.Frame):
                                command=lambda: self.mostrar_simplificado())
         self.ingresarSecuencia.place(x=150, y=260)
 
-    # literalmente recorre al automata partiendo del estado inicial, con lo cual no se tienen en cuenta los estados extraños
+    # recorre al automata partiendo del estado inicial, con lo cual no se tienen en cuenta los estados extraños
     def recorrer_automata(self, automata_no_deterministico, automata_deterministico, estado):
         if estado in automata_deterministico:
             return
